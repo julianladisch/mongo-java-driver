@@ -1,0 +1,32 @@
+name: Java CI with Gradle
+
+on:
+  workflow_dispatch:
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+    - run: curl -fsSL https://pgp.mongodb.com/server-8.0.asc | \
+           sudo gpg -o /usr/share/keyrings/mongodb-server-8.0.gpg --dearmor
+    - run: echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-8.0.gpg ] https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-8.0.list
+    - run: sudo apt-get update
+    - run: sudo apt-get install -y mongodb-org
+    - run: mkdir -p data/db
+    - run: mongod --dbpath ./data/db --logpath ./data/mongod.log --port 27017 --logappend --fork --setParameter enableTestCommands=1
+
+    - uses: actions/checkout@v7
+    - name: Set up JDK 17
+      uses: actions/setup-java@v6
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v6
+
+    - name: Build with Gradle Wrapper
+      run: ./gradlew check
